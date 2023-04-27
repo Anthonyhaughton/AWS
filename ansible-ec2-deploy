@@ -1,0 +1,27 @@
+- name: Provision EC2 instance
+  hosts: localhost
+  vars:
+    image_id = "ami-02396cdd13e9a1257" # replace with your preffered image
+    instance_type: "t2.micro" # replace with your preferred instance type
+    key_name: "shh_key" # replace with your preferred key pair name
+    region: "us-east-1" # replace with your preferred region
+    subnet_id: "subnet-08ef7b3e735fe4487" # replace with your preferred subnet
+    security_groups: # replace with your preferred security group IDs
+      - "sg-0ac99e5a037c06194"
+      - "sg-0856fb08db7b466d0"
+  tasks:
+    - name: Create EC2 instance
+      amazon.aws.ec2_instance:
+        region: "{{ region }}"
+        name: "web_server"
+        image_id: "{{ image_id }}"
+        instance_type: "{{ instance_type }}"
+        key_name: "{{ key_name }}"
+        security_groups: "{{ security_groups }}"
+        count: 1
+        wait: yes
+        subnet_id: "{{ subnet_id }}"
+        filters:
+          instance-state-name: running
+          "tag:Name": "My EC2 Instance"
+      register: running_instances
