@@ -1,7 +1,7 @@
 - name: Provision EC2 instance
   hosts: localhost
   vars:
-    image_id = "ami-02396cdd13e9a1257" # replace with your preffered image
+    image_id: = "ami-02396cdd13e9a1257" # replace with your preffered image
     instance_type: "t2.micro" # replace with your preferred instance type
     key_name: "shh_key" # replace with your preferred key pair name
     region: "us-east-1" # replace with your preferred region
