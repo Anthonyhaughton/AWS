@@ -31,7 +31,7 @@
     - name: Add new host to inventory
       add_host:
         name: "{{ running_instances.instances[0].public_dns_name }}"
-        groups: Server
+        groups: Jenkins
         ansible_user: ec2-user
         ansible_ssh_private_key_file: /root/.ssh/ansible_keys.pem
 
@@ -42,56 +42,31 @@
 
     - name: Install Java
       become: true
-      remote_user: ec2-user
-      vars:
-        ansible_ssh_private_key_file: /root/.ssh/ansible_keys.pem
       yum:
         name: java-1.8.0-openjdk-devel
         state: present
+      delegate_to: "{{ running_instances.instances[0].public_dns_name }}"
 
     - name: Install Jenkins
       become: true
-      remote_user: ec2-user
-      vars:
-        ansible_ssh_private_key_file: /root/.ssh/ansible_keys.pem
       yum:
         name: wget
         state: present
+      delegate_to: "{{ running_instances.instances[0].public_dns_name }}"
 
-    - name: Download Jenkins
+    - name: Import Jenkins GPG key
       become: true
-      remote_user: ec2-user
-      vars:
-        ansible_ssh_private_key_file: /root/.ssh/ansible_keys.pem
-      get_url:
-        url: https://updates.jenkins-ci.org/download/war/2.303/jenkins.war
-        dest: /home/ec2-user/jenkins.war
+      shell: |
+        wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat/jenkins.repo
+        rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+        yum install jenkins -y
+      register: jenkins_install_output
+      delegate_to: "{{ running_instances.instances[0].public_dns_name }}"
 
-    - name: Start Jenkins
+    - name: Download and install Jenkins
       become: true
-      remote_user: ec2-user
-      vars:
-        ansible_ssh_private_key_file: /root/.ssh/ansible_keys.pem
-      shell: "nohup java -jar /home/ec2-user/jenkins.war > /dev/null 2>&1 &"
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
+      shell: |
+        wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat/jenkins.repo
+        yum install jenkins -y
+      register: jenkins_install_output
+      delegate_to: "{{ running_instances.instances[0].public_dns_name }}"
