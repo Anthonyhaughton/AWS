@@ -1,4 +1,4 @@
-- name: Provision EC2 instance and Install Jenkins
+- name: Provision EC2 instance and Install Jenkins with Nginx Proxy
   hosts: localhost
   vars:
     image_id: "ami-016eb5d644c333ccb" # replace with your preffered image
@@ -11,6 +11,7 @@
       - "sg-0ac99e5a037c06194"
       - "sg-0856fb08db7b466d0"
   tasks:
+
     - name: Create EC2 instance
       amazon.aws.ec2_instance:
         region: "{{ region }}"
@@ -40,6 +41,12 @@
         timeout: 900
       delegate_to: "{{ running_instances.instances[0].public_dns_name }}"
 
+    - name: Set Hostname
+      become: true
+      ansible.builtin.hostname:
+        name: Jenkins
+      delegate_to: "{{ running_instances.instances[0].public_dns_name }}"
+
     - name: Install Java
       become: true
       yum:
@@ -47,7 +54,7 @@
         state: present
       delegate_to: "{{ running_instances.instances[0].public_dns_name }}"
 
-    - name: Install Jenkins
+    - name: Install wget
       become: true
       yum:
         name: wget
@@ -63,10 +70,47 @@
       register: jenkins_install_output
       delegate_to: "{{ running_instances.instances[0].public_dns_name }}"
 
-    - name: Download and install Jenkins
+    - name: Download and Install Jenkins
       become: true
       shell: |
         wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins-ci.org/redhat/jenkins.repo
         yum install jenkins -y
       register: jenkins_install_output
       delegate_to: "{{ running_instances.instances[0].public_dns_name }}"
+
+    - name: Make SELinux Pemissive
+      become: true
+      ansible.posix.selinux:
+        policy: targeted
+        state: "permissive"
+      delegate_to: "{{ running_instances.instances[0].public_dns_name }}"
+
+
+- name: Install and configure NginX then Start Jenkins
+  hosts: Jenkins
+  become: true
+  remote_user: ec2-user
+  vars:
+    ansible_ssh_private_key_file: /root/.ssh/ansible_keys.pem
+  tasks:
+
+    - name: Install NginX
+      yum:
+        name: nginx
+        state: present
+
+    - name: Move Nginx file to correct directory
+      template:
+        src: /home/ansible/files/apps.conf
+        dest: /etc/nginx/conf.d/apps.conf
+
+    - name: restart Nginx
+      service:
+        name: nginx
+        state: restarted
+
+    - name: Start Jenkins service
+      service:
+        name: jenkins
+        state: started
+        enabled: true
