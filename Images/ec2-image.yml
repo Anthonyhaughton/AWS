@@ -26,4 +26,4 @@
         filters:
           instance-state-name: running
           "tag:Name": "My EC2 Instance"
-      register: running_instancesdd
+      register: running_instances
